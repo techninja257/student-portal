@@ -31,7 +31,7 @@ export default function Pagination({ currentPage, totalPages, total, limit, onPa
 
   return (
     <div className="flex items-center justify-between mt-4 px-1">
-      <p className="text-xs text-outline">
+      <p className="text-xs text-outline hidden sm:block">
         Showing <span className="font-semibold text-on-surface-variant">{from}</span>–<span className="font-semibold text-on-surface-variant">{to}</span> of <span className="font-semibold text-on-surface-variant">{total}</span> results
       </p>
 
@@ -44,14 +44,16 @@ export default function Pagination({ currentPage, totalPages, total, limit, onPa
           Previous
         </button>
 
+        <span className="sm:hidden text-xs text-on-surface-variant px-2">Page {currentPage} of {totalPages}</span>
+
         {pageNumbers().map((p, i) =>
           p === '...' ? (
-            <span key={`ellipsis-${i}`} className="px-2 py-1.5 text-sm text-outline select-none">…</span>
+            <span key={`ellipsis-${i}`} className="hidden sm:inline-flex px-2 py-1.5 text-sm text-outline select-none">…</span>
           ) : (
             <button
               key={p}
               onClick={() => onPageChange(p)}
-              className={p === currentPage ? btnActive : btnDefault}
+              className={`hidden sm:inline-flex ${p === currentPage ? btnActive : btnDefault}`}
             >
               {p}
             </button>

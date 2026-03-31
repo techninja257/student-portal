@@ -150,7 +150,7 @@ export default function StudentProfile() {
       ) : (
         <>
           {/* Profile header */}
-          <div className="bg-[#f3f4f5] rounded-xl p-8 mb-6 flex items-center gap-6">
+          <div className="bg-[#f3f4f5] rounded-xl p-8 mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
             {student.profile_image_url ? (
               <img
                 src={student.profile_image_url}

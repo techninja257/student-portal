@@ -37,7 +37,7 @@ export default function Dashboard() {
           {/* Profile card */}
           {profile && (
             <div className="bg-surface-low rounded-xl p-8 border-l-4 border-[#006565] border border-outline-variant/10">
-              <div className="flex items-center gap-5 mb-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 mb-4">
                 {profile.profile_image_url ? (
                   <img
                     src={profile.profile_image_url}

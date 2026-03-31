@@ -275,8 +275,8 @@ export default function Results() {
       </div>
 
       {/* Filter bar */}
-      <div className="mb-5 flex items-center gap-3">
-        <div className="flex-1 max-w-sm">
+      <div className="mb-5 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <div className="flex-1 w-full sm:max-w-sm">
           <StudentSearchInput onSelect={handleFilterSelect} label="" />
         </div>
         {filterStudent && (
@@ -306,7 +306,7 @@ export default function Results() {
                   <tr className="bg-surface-low text-[10px] uppercase tracking-widest font-semibold text-on-surface-variant text-left">
                     <th className="px-6 py-4">Student</th>
                     <th className="px-6 py-4">Title</th>
-                    <th className="px-6 py-4">Semester</th>
+                    <th className="px-6 py-4 hidden sm:table-cell">Semester</th>
                     <th className="px-6 py-4">Uploaded</th>
                     <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
@@ -319,7 +319,7 @@ export default function Results() {
                         <p className="text-on-surface-variant text-xs">{r.matric_no}</p>
                       </td>
                       <td className="px-6 py-4 text-on-surface-variant">{r.title}</td>
-                      <td className="px-6 py-4 text-on-surface-variant whitespace-nowrap">{r.semester_name}</td>
+                      <td className="px-6 py-4 text-on-surface-variant whitespace-nowrap hidden sm:table-cell">{r.semester_name}</td>
                       <td className="px-6 py-4 text-on-surface-variant whitespace-nowrap">{fmt(r.uploaded_at)}</td>
                       <td className="px-6 py-4 text-right space-x-3 whitespace-nowrap">
                         <button

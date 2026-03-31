@@ -73,7 +73,7 @@ export default function Levels() {
 
   return (
     <AdminLayout>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-6">
         <button
           onClick={openAdd}
           className="flex items-center gap-2 bg-gradient-to-br from-[#006565] to-[#008080] text-white px-4 py-2 rounded-xl font-semibold text-sm shadow-md shadow-primary/20 hover:opacity-90 transition"
@@ -94,27 +94,29 @@ export default function Levels() {
               <p className="text-sm text-outline mt-1">Create one to get started.</p>
             </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-surface-low text-[10px] uppercase tracking-widest font-semibold text-on-surface-variant text-left">
-                  <th className="px-6 py-4">Name</th>
-                  <th className="px-6 py-4">Created</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <tr key={item.id} className="border-t border-outline-variant/10 hover:bg-surface/50 transition-colors">
-                    <td className="px-6 py-4 text-on-surface font-medium">{item.name}</td>
-                    <td className="px-6 py-4 text-on-surface-variant">{fmt(item.created_at)}</td>
-                    <td className="px-6 py-4 text-right space-x-3">
-                      <button onClick={() => openEdit(item)} className="text-primary hover:text-primary-container font-medium text-sm">Edit</button>
-                      <button onClick={() => openDelete(item)} className="text-error hover:opacity-70 font-medium text-sm">Delete</button>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-surface-low text-[10px] uppercase tracking-widest font-semibold text-on-surface-variant text-left">
+                    <th className="px-6 py-4">Name</th>
+                    <th className="px-6 py-4 hidden sm:table-cell">Created</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {items.map((item) => (
+                    <tr key={item.id} className="border-t border-outline-variant/10 hover:bg-surface/50 transition-colors">
+                      <td className="px-6 py-4 text-on-surface font-medium">{item.name}</td>
+                      <td className="px-6 py-4 text-on-surface-variant hidden sm:table-cell">{fmt(item.created_at)}</td>
+                      <td className="px-6 py-4 text-right space-x-3">
+                        <button onClick={() => openEdit(item)} className="text-primary hover:text-primary-container font-medium text-sm">Edit</button>
+                        <button onClick={() => openDelete(item)} className="text-error hover:opacity-70 font-medium text-sm">Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}

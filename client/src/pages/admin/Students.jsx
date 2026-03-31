@@ -146,25 +146,24 @@ export default function Students() {
 
   return (
     <AdminLayout>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-6">
+        <div className="relative w-full sm:max-w-sm">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+          <input
+            type="text"
+            value={search}
+            onChange={handleSearchChange}
+            placeholder="Search by name, email, or matric number..."
+            className="w-full bg-surface-low border-none rounded-xl px-4 py-2.5 pl-10 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
+          />
+        </div>
         <button
           onClick={() => openForm(null)}
-          className="flex items-center gap-2 bg-gradient-to-br from-[#006565] to-[#008080] text-white px-4 py-2 rounded-xl font-semibold text-sm shadow-md shadow-primary/20 hover:opacity-90 transition"
+          className="flex items-center gap-2 bg-gradient-to-br from-[#006565] to-[#008080] text-white px-4 py-2 rounded-xl font-semibold text-sm shadow-md shadow-primary/20 hover:opacity-90 transition shrink-0"
         >
           <span className="material-symbols-outlined text-[18px]">add</span>
           Add Student
         </button>
-      </div>
-
-      <div className="relative mb-5">
-        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
-        <input
-          type="text"
-          value={search}
-          onChange={handleSearchChange}
-          placeholder="Search by name, email, or matric number..."
-          className="w-full bg-surface-low border-none rounded-xl px-4 py-2.5 pl-10 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
-        />
       </div>
 
       {loading ? (
@@ -185,8 +184,8 @@ export default function Students() {
                     <th className="px-6 py-4">Name</th>
                     <th className="px-6 py-4">Email</th>
                     <th className="px-6 py-4">Matric No</th>
-                    <th className="px-6 py-4">Department</th>
-                    <th className="px-6 py-4">Level</th>
+                    <th className="px-6 py-4 hidden md:table-cell">Department</th>
+                    <th className="px-6 py-4 hidden md:table-cell">Level</th>
                     <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -206,8 +205,8 @@ export default function Students() {
                       </td>
                       <td className="px-6 py-3 text-on-surface-variant">{s.email}</td>
                       <td className="px-6 py-3 text-on-surface-variant whitespace-nowrap">{s.matric_no}</td>
-                      <td className="px-6 py-3 text-on-surface-variant">{s.department_name || '—'}</td>
-                      <td className="px-6 py-3 text-on-surface-variant">{s.level_name || '—'}</td>
+                      <td className="px-6 py-3 text-on-surface-variant hidden md:table-cell">{s.department_name || '—'}</td>
+                      <td className="px-6 py-3 text-on-surface-variant hidden md:table-cell">{s.level_name || '—'}</td>
                       <td className="px-6 py-3 text-right space-x-3 whitespace-nowrap">
                         <button onClick={() => navigate(`/admin/students/${s.id}`)} className="text-primary hover:text-primary-container font-medium text-sm">View</button>
                         <button onClick={() => openForm(s)} className="text-primary hover:text-primary-container font-medium text-sm">Edit</button>
