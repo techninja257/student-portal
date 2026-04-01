@@ -137,6 +137,7 @@ export default function Results() {
   const [semesters, setSemesters] = useState([]);
   const [saving, setSaving] = useState(false);
   const [fileName, setFileName] = useState('');
+  const [downloadingId, setDownloadingId] = useState(null);
   // track last auto-generated title so we don't overwrite custom edits
   const autoTitleRef = useRef('');
 
@@ -240,11 +241,13 @@ export default function Results() {
   }
 
   async function handleDownload(result) {
+    setDownloadingId(result.id);
     try {
-      const { data } = await api.get(`/results/${result.id}/download`);
-      downloadPDF(data.url, result.original_name);
+      await downloadPDF(result.id, result.original_name);
     } catch {
-      toast.error('Failed to get download link');
+      toast.error('Failed to download result');
+    } finally {
+      setDownloadingId(null);
     }
   }
 
@@ -326,9 +329,10 @@ export default function Results() {
                       <td className="px-6 py-4 text-right space-x-3 whitespace-nowrap">
                         <button
                           onClick={() => handleDownload(r)}
-                          className="text-primary hover:text-primary-container font-medium text-sm"
+                          disabled={downloadingId === r.id}
+                          className="text-primary hover:text-primary-container font-medium text-sm disabled:opacity-50"
                         >
-                          Download
+                          {downloadingId === r.id ? 'Downloading...' : 'Download'}
                         </button>
                         <button
                           onClick={() => setModal({ type: 'delete', item: r })}

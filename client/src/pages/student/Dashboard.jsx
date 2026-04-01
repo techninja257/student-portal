@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import StudentLayout from '../../layouts/StudentLayout';
 import Spinner from '../../components/Spinner';
 import api, { downloadPDF } from '../../api';
@@ -12,6 +13,19 @@ export default function Dashboard() {
   const [profile, setProfile] = useState(null);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState(null);
+
+  async function handleDownload(r) {
+    setDownloadingId(r.id);
+    try {
+      trackEvent('result_downloaded', { resultId: r.id, title: r.title });
+      await downloadPDF(r.id, r.original_name);
+    } catch {
+      toast.error('Failed to download result');
+    } finally {
+      setDownloadingId(null);
+    }
+  }
 
   useEffect(() => {
     async function fetchAll() {
@@ -95,11 +109,12 @@ export default function Dashboard() {
                   <p className="font-headline font-bold text-on-surface text-lg">{r.title}</p>
                   <p className="text-xs text-outline mt-1">{fmt(r.uploaded_at)}</p>
                   <button
-                    onClick={() => { trackEvent('result_downloaded', { resultId: r.id, title: r.title }); downloadPDF(r.cloudinary_url, r.original_name); }}
-                    className="mt-4 flex items-center gap-1.5 border border-primary text-primary px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary/5 transition-colors"
+                    onClick={() => handleDownload(r)}
+                    disabled={downloadingId === r.id}
+                    className="mt-4 flex items-center gap-1.5 border border-primary text-primary px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary/5 disabled:opacity-50 transition-colors"
                   >
                     <span className="material-symbols-outlined text-[18px]">download</span>
-                    Download PDF
+                    {downloadingId === r.id ? 'Downloading...' : 'Download PDF'}
                   </button>
                 </div>
               ))}

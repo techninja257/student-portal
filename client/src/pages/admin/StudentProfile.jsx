@@ -30,6 +30,7 @@ export default function StudentProfile() {
   const [form, setForm] = useState(emptyUpload);
   const [fileName, setFileName] = useState('');
   const [saving, setSaving] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
   const autoTitleRef = useRef('');
 
   useEffect(() => {
@@ -108,11 +109,13 @@ export default function StudentProfile() {
   }
 
   async function handleDownload(result) {
+    setDownloadingId(result.id);
     try {
-      const { data } = await api.get(`/results/${result.id}/download`);
-      downloadPDF(data.url, result.original_name);
+      await downloadPDF(result.id, result.original_name);
     } catch {
-      toast.error('Failed to get download link');
+      toast.error('Failed to download result');
+    } finally {
+      setDownloadingId(null);
     }
   }
 
@@ -231,9 +234,10 @@ export default function StudentProfile() {
                           <td className="px-6 py-4 text-right space-x-3 whitespace-nowrap">
                             <button
                               onClick={() => handleDownload(r)}
-                              className="text-primary hover:text-primary-container font-medium text-sm"
+                              disabled={downloadingId === r.id}
+                              className="text-primary hover:text-primary-container font-medium text-sm disabled:opacity-50"
                             >
-                              Download
+                              {downloadingId === r.id ? 'Downloading...' : 'Download'}
                             </button>
                             <button
                               onClick={() => setModal({ type: 'delete', item: r })}

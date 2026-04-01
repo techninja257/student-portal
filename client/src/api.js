@@ -12,15 +12,17 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-export function downloadPDF(url, filename) {
+export async function downloadPDF(id, filename) {
+  const response = await api.get(`/results/${id}/download`, { responseType: 'blob' });
+  const blob = new Blob([response.data], { type: 'application/pdf' });
+  const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
   link.download = filename || 'result.pdf';
-  link.target = '_blank';
-  link.rel = 'noopener noreferrer';
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
 }
 
 export default api;

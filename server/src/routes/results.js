@@ -147,7 +147,13 @@ router.get('/:id/download', verifyToken, async (req, res) => {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
-    res.json({ url: result.cloudinary_url, filename: result.original_name });
+    const fileResponse = await fetch(result.cloudinary_url);
+    if (!fileResponse.ok) return res.status(502).json({ error: 'Failed to fetch file' });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${result.original_name}"`);
+    const arrayBuffer = await fileResponse.arrayBuffer();
+    res.send(Buffer.from(arrayBuffer));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
