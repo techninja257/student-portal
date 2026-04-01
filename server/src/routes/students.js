@@ -6,6 +6,10 @@ import { v2 as cloudinary } from 'cloudinary';
 import { parse } from 'csv-parse/sync';
 import pool from '../db.js';
 import { requireAdmin } from '../middleware/auth.js';
+
+function isStrongPassword(pwd) {
+  return pwd && pwd.length >= 8 && /[a-z]/.test(pwd) && /[A-Z]/.test(pwd) && /\d/.test(pwd);
+}
 import { deletePDF } from '../cloudinary.js';
 
 const router = express.Router();
@@ -63,6 +67,14 @@ function safeStudent(row) {
   return rest;
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Neutralise CSV injection: prefix formula-triggering chars with an apostrophe
+function sanitizeCSVField(val) {
+  if (typeof val === 'string' && /^[=+\-@\t\r]/.test(val)) return "'" + val;
+  return val;
+}
+
 // POST /api/students/bulk-upload
 router.post('/bulk-upload', requireAdmin, uploadCSV.single('csv'), async (req, res) => {
   try {
@@ -94,10 +106,21 @@ router.post('/bulk-upload', requireAdmin, uploadCSV.single('csv'), async (req, r
     for (let i = 0; i < records.length; i++) {
       const row = records[i];
       const rowNum = i + 2; // 1-based, +1 for header
-      const { name, email, matric_no, department, level, default_password } = row;
+      const name = sanitizeCSVField(row.name);
+      const email = sanitizeCSVField(row.email);
+      const matric_no = sanitizeCSVField(row.matric_no);
+      const department = sanitizeCSVField(row.department);
+      const level = sanitizeCSVField(row.level);
+      const default_password = row.default_password;
 
       if (!name || !email || !matric_no || !department || !level || !default_password) {
         errors.push({ row: rowNum, email: email || '', reason: 'Missing required fields' });
+        skipped++;
+        continue;
+      }
+
+      if (!EMAIL_RE.test(email)) {
+        errors.push({ row: rowNum, email, reason: 'Invalid email format' });
         skipped++;
         continue;
       }
@@ -165,7 +188,7 @@ router.post('/bulk-upload', requireAdmin, uploadCSV.single('csv'), async (req, r
 router.get('/', requireAdmin, async (req, res) => {
   try {
     const { search } = req.query;
-    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const page = Math.max(1, Math.min(10000, parseInt(req.query.page) || 1));
     const limit = Math.max(1, Math.min(100, parseInt(req.query.limit) || 20));
     const offset = (page - 1) * limit;
 
@@ -227,8 +250,17 @@ router.post('/', requireAdmin, upload.single('photo'), async (req, res) => {
   try {
     const { name, email, matric_no, department_id, level_id, default_password } = req.body;
 
+    if (!name || !email || !matric_no) {
+      return res.status(400).json({ error: 'name, email, and matric_no are required' });
+    }
+    if (!EMAIL_RE.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
     if (!default_password) {
       return res.status(400).json({ error: 'default_password is required' });
+    }
+    if (!isStrongPassword(default_password)) {
+      return res.status(400).json({ error: 'default_password must be at least 8 characters and include uppercase, lowercase, and a number' });
     }
 
     const { rows: deptRows } = await pool.query(
@@ -321,6 +353,9 @@ router.put('/:id/reset-password', requireAdmin, async (req, res) => {
     if (!default_password) {
       return res.status(400).json({ error: 'default_password is required' });
     }
+    if (!isStrongPassword(default_password)) {
+      return res.status(400).json({ error: 'default_password must be at least 8 characters and include uppercase, lowercase, and a number' });
+    }
 
     const { rows: studentRows } = await pool.query(
       'SELECT name, email FROM students WHERE id = $1',
@@ -352,7 +387,7 @@ router.put('/:id/reset-password', requireAdmin, async (req, res) => {
       console.error('Failed to send password reset email:', emailErr);
     }
 
-    res.json({ message: 'Password reset successfully', default_password });
+    res.json({ message: 'Password reset successfully' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });

@@ -23,14 +23,17 @@ const upload = multer({
 // GET /api/results
 router.get('/', requireAdmin, async (req, res) => {
   try {
-    const { student_id } = req.query;
-    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const page = Math.max(1, Math.min(10000, parseInt(req.query.page) || 1));
     const limit = Math.max(1, Math.min(100, parseInt(req.query.limit) || 20));
     const offset = (page - 1) * limit;
 
     const whereParams = [];
     let whereClause = '';
-    if (student_id) {
+    if (req.query.student_id !== undefined) {
+      const student_id = parseInt(req.query.student_id);
+      if (!Number.isInteger(student_id) || student_id < 1) {
+        return res.status(400).json({ error: 'Invalid student_id' });
+      }
       whereParams.push(student_id);
       whereClause = ` WHERE r.student_id = $1`;
     }
@@ -147,11 +150,19 @@ router.get('/:id/download', verifyToken, async (req, res) => {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
-    const fileResponse = await fetch(result.cloudinary_url);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    let fileResponse;
+    try {
+      fileResponse = await fetch(result.cloudinary_url, { signal: controller.signal });
+    } finally {
+      clearTimeout(timeout);
+    }
     if (!fileResponse.ok) return res.status(502).json({ error: 'Failed to fetch file' });
 
+    const safeFilename = result.original_name.replace(/[^\w.\-]/g, '_');
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${result.original_name}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
     const arrayBuffer = await fileResponse.arrayBuffer();
     res.send(Buffer.from(arrayBuffer));
   } catch (err) {

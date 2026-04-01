@@ -1,13 +1,26 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 import pool from '../db.js';
 import { requireAdmin, requireStudent } from '../middleware/auth.js';
 
 const router = express.Router();
 
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many login attempts. Please try again in 15 minutes.' },
+});
+
+function isStrongPassword(pwd) {
+  return pwd && pwd.length >= 8 && /[a-z]/.test(pwd) && /[A-Z]/.test(pwd) && /\d/.test(pwd);
+}
+
 // POST /api/auth/admin/login
-router.post('/admin/login', async (req, res) => {
+router.post('/admin/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -47,8 +60,8 @@ router.put('/admin/change-password', requireAdmin, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
-    if (!newPassword || newPassword.length < 8) {
-      return res.status(400).json({ message: 'New password must be at least 8 characters' });
+    if (!isStrongPassword(newPassword)) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters and include uppercase, lowercase, and a number' });
     }
 
     const { rows } = await pool.query('SELECT * FROM admins WHERE id = $1', [req.user.id]);
@@ -70,7 +83,7 @@ router.put('/admin/change-password', requireAdmin, async (req, res) => {
 });
 
 // POST /api/auth/student/login
-router.post('/student/login', async (req, res) => {
+router.post('/student/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -120,8 +133,8 @@ router.put('/student/change-password', requireStudent, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
-    if (!newPassword || newPassword.length < 8) {
-      return res.status(400).json({ message: 'New password must be at least 8 characters' });
+    if (!isStrongPassword(newPassword)) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters and include uppercase, lowercase, and a number' });
     }
 
     const { rows } = await pool.query('SELECT * FROM students WHERE id = $1', [req.user.id]);

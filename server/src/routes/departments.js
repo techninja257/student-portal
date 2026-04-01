@@ -27,7 +27,8 @@ router.get('/', requireAdmin, async (req, res) => {
 // POST /api/departments
 router.post('/', requireAdmin, async (req, res) => {
   try {
-    const { name } = req.body;
+    const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
+    if (!name || name.length > 200) return res.status(400).json({ error: 'name is required and must be under 200 characters' });
     const { rows } = await pool.query(
       'INSERT INTO departments (name) VALUES ($1) RETURNING *',
       [name]
@@ -42,7 +43,8 @@ router.post('/', requireAdmin, async (req, res) => {
 // PUT /api/departments/:id
 router.put('/:id', requireAdmin, async (req, res) => {
   try {
-    const { name } = req.body;
+    const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
+    if (!name || name.length > 200) return res.status(400).json({ error: 'name is required and must be under 200 characters' });
     const { rows } = await pool.query(
       'UPDATE departments SET name = $1 WHERE id = $2 RETURNING *',
       [name, req.params.id]
