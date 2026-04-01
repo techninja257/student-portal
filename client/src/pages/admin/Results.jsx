@@ -4,7 +4,7 @@ import AdminLayout from '../../layouts/AdminLayout';
 import Modal from '../../components/Modal';
 import Spinner from '../../components/Spinner';
 import Pagination from '../../components/Pagination';
-import api from '../../api';
+import api, { downloadPDF } from '../../api';
 import { trackEvent } from '../../analytics.js';
 
 function fmt(date) {
@@ -242,7 +242,7 @@ export default function Results() {
   async function handleDownload(result) {
     try {
       const { data } = await api.get(`/results/${result.id}/download`);
-      window.open(data.url, '_blank');
+      downloadPDF(data.url, result.original_name);
     } catch {
       toast.error('Failed to get download link');
     }

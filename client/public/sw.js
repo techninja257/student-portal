@@ -40,8 +40,14 @@ self.addEventListener('fetch', (event) => {
       caches.match(request).then((cached) => {
         if (cached) return cached;
         return fetch(request).then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          if (request.url.startsWith('http')) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              try {
+                cache.put(request, clone);
+              } catch (_) {}
+            });
+          }
           return response;
         });
       })

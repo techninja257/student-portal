@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import AdminLayout from '../../layouts/AdminLayout';
 import Modal from '../../components/Modal';
 import Spinner from '../../components/Spinner';
-import api from '../../api';
+import api, { downloadPDF } from '../../api';
 
 function fmt(date) {
   return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -110,7 +110,7 @@ export default function StudentProfile() {
   async function handleDownload(result) {
     try {
       const { data } = await api.get(`/results/${result.id}/download`);
-      window.open(data.url, '_blank');
+      downloadPDF(data.url, result.original_name);
     } catch {
       toast.error('Failed to get download link');
     }
