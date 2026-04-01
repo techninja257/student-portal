@@ -59,6 +59,7 @@ router.post('/student/request-otp', async (req, res) => {
     }
 
     const otp = Math.random().toString().slice(2, 8);
+    console.log(`OTP for ${email}: ${otp}`);
 
     await pool.query(
       'DELETE FROM otp_codes WHERE email = $1 AND used = FALSE',
@@ -80,8 +81,8 @@ router.post('/student/request-otp', async (req, res) => {
         subject: 'Your Login OTP',
         html: `<p>Your OTP code is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
       });
-    } catch (emailErr) {
-      console.warn('Email send failed, OTP fallback:', otp, emailErr.message);
+    } catch (emailError) {
+      console.error('Failed to send OTP email:', emailError);
     }
 
     res.json({ message: 'OTP sent to your email' });
