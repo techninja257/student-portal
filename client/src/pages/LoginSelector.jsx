@@ -25,7 +25,7 @@ export default function LoginSelector() {
           </div>
           <h2 className="font-headline font-bold text-xl text-on-surface mb-2">Student</h2>
           <p className="text-sm text-on-surface-variant leading-relaxed mb-6">
-            Access your results and academic records
+            Sign in with your email and password
           </p>
           <span className="mt-auto text-sm font-semibold text-primary flex items-center gap-1 group-hover:gap-2 transition-all">
             Sign in

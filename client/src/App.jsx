@@ -6,6 +6,7 @@ import LoginSelector from './pages/LoginSelector';
 import StudentLogin from './pages/StudentLogin';
 import AdminLogin from './pages/AdminLogin';
 import StudentDashboard from './pages/student/Dashboard';
+import ChangePassword from './pages/student/ChangePassword';
 import Dashboard from './pages/admin/Dashboard';
 import Departments from './pages/admin/Departments';
 import Levels from './pages/admin/Levels';
@@ -19,11 +20,23 @@ function AdminRoute({ children }) {
   return <ProtectedRoute role="admin">{children}</ProtectedRoute>;
 }
 
+// Student route: redirects to /change-password if must_change_password is true
+function StudentRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user || user.role !== 'student') return <Navigate to="/login" replace />;
+  if (user.must_change_password) return <Navigate to="/change-password" replace />;
+  return children;
+}
+
 function RootRedirect() {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (user?.role === 'admin') return <Navigate to="/admin" replace />;
-  if (user?.role === 'student') return <Navigate to="/student" replace />;
+  if (user?.role === 'student') {
+    if (user.must_change_password) return <Navigate to="/change-password" replace />;
+    return <Navigate to="/student" replace />;
+  }
   return <LoginSelector />;
 }
 
@@ -38,12 +51,15 @@ export default function App() {
           <Route path="/login" element={<StudentLogin />} />
           <Route path="/admin/login" element={<AdminLogin />} />
 
-          {/* Student */}
+          {/* Student — requires auth + must_change_password guard */}
+          <Route path="/student" element={<StudentRoute><StudentDashboard /></StudentRoute>} />
+
+          {/* Change password — requires student auth, accessible even with must_change_password */}
           <Route
-            path="/student"
+            path="/change-password"
             element={
               <ProtectedRoute role="student">
-                <StudentDashboard />
+                <ChangePassword />
               </ProtectedRoute>
             }
           />

@@ -67,13 +67,11 @@ async function migrate() {
   `);
 
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS otp_codes (
-      id SERIAL PRIMARY KEY,
-      email TEXT NOT NULL,
-      code TEXT NOT NULL,
-      expires_at TIMESTAMP NOT NULL,
-      used BOOLEAN DEFAULT FALSE
-    )
+    ALTER TABLE students ADD COLUMN IF NOT EXISTS password_hash TEXT DEFAULT NULL
+  `);
+
+  await pool.query(`
+    ALTER TABLE students ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT TRUE
   `);
 
   console.log('Migrations complete.');

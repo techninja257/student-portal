@@ -8,7 +8,24 @@ import Pagination from '../../components/Pagination';
 import api from '../../api';
 import { trackEvent } from '../../analytics.js';
 
-const emptyForm = { name: '', email: '', matric_no: '', department_id: '', level_id: '', photo: null };
+const emptyForm = { name: '', email: '', matric_no: '', department_id: '', level_id: '', photo: null, default_password: '' };
+
+function downloadTemplate() {
+  const csv = [
+    'name,email,matric_no,department,level,default_password',
+    'John Doe,john@example.com,MAT001,Computer Sciences,200 Level,password123',
+    'Jane Smith,jane@example.com,MAT002,Computer Sciences,100 Level,password123',
+  ].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'student-upload-template.csv';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
 
 function initials(name) {
   if (!name) return '?';
@@ -40,6 +57,11 @@ export default function Students() {
   const [departments, setDepartments] = useState([]);
   const [levels, setLevels] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [bulkModal, setBulkModal] = useState(false);
+  const [bulkFile, setBulkFile] = useState(null);
+  const [bulkUploading, setBulkUploading] = useState(false);
+  const [bulkResult, setBulkResult] = useState(null);
   const debounceRef = useRef(null);
   const navigate = useNavigate();
 
@@ -86,6 +108,7 @@ export default function Students() {
     } else {
       setForm(emptyForm);
       setPhotoPreview(null);
+      setShowPassword(false);
       setModal({ type: 'form' });
     }
   }
@@ -117,6 +140,7 @@ export default function Students() {
         await api.put(`/students/${modal.item.id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
         toast.success('Student updated');
       } else {
+        fd.append('default_password', form.default_password);
         await api.post('/students', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
         trackEvent('student_registered');
         toast.success('Student created');
@@ -144,6 +168,28 @@ export default function Students() {
     }
   }
 
+  async function handleBulkUpload() {
+    if (!bulkFile) return;
+    setBulkUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('csv', bulkFile);
+      const { data } = await api.post('/students/bulk-upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setBulkResult(data);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Upload failed');
+    } finally {
+      setBulkUploading(false);
+    }
+  }
+
+  function closeBulkModal() {
+    setBulkModal(false);
+    setBulkFile(null);
+    setBulkResult(null);
+    if (bulkResult?.created > 0) fetchStudents(search, pagination.page);
+  }
+
   const inputCls = 'w-full bg-surface-low border border-outline-variant/30 rounded-xl px-4 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition';
 
   return (
@@ -159,13 +205,22 @@ export default function Students() {
             className="w-full bg-surface-low border-none rounded-xl px-4 py-2.5 pl-10 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
           />
         </div>
-        <button
-          onClick={() => openForm(null)}
-          className="flex items-center gap-2 bg-gradient-to-br from-[#006565] to-[#008080] text-white px-4 py-2 rounded-xl font-semibold text-sm shadow-md shadow-primary/20 hover:opacity-90 transition shrink-0"
-        >
-          <span className="material-symbols-outlined text-[18px]">add</span>
-          Add Student
-        </button>
+        <div className="flex gap-2 shrink-0">
+          <button
+            onClick={() => setBulkModal(true)}
+            className="flex items-center gap-2 border border-primary/30 text-primary bg-white px-4 py-2 rounded-xl font-semibold text-sm hover:bg-primary/5 transition"
+          >
+            <span className="material-symbols-outlined text-[18px]">upload_file</span>
+            Bulk Upload
+          </button>
+          <button
+            onClick={() => openForm(null)}
+            className="flex items-center gap-2 bg-gradient-to-br from-[#006565] to-[#008080] text-white px-4 py-2 rounded-xl font-semibold text-sm shadow-md shadow-primary/20 hover:opacity-90 transition"
+          >
+            <span className="material-symbols-outlined text-[18px]">add</span>
+            Add Student
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -276,6 +331,29 @@ export default function Students() {
                 {levels.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
             </div>
+            {!modal.item && (
+              <div>
+                <label className="block text-[10px] uppercase tracking-widest font-semibold text-on-surface-variant mb-1.5">Default Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={form.default_password}
+                    onChange={e => field('default_password', e.target.value)}
+                    className={`${inputCls} pr-10`}
+                    placeholder="Temporary password for student"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                  </button>
+                </div>
+                <p className="text-[11px] text-outline mt-1">Student will be prompted to change this on first login.</p>
+              </div>
+            )}
             <div className="flex justify-end gap-3 pt-2">
               <button type="button" onClick={() => setModal(null)} className="px-5 py-2 text-sm font-semibold text-on-surface-variant hover:text-on-surface transition">Cancel</button>
               <button type="submit" disabled={saving} className="bg-gradient-to-br from-[#006565] to-[#008080] text-white px-5 py-2 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition">
@@ -283,6 +361,93 @@ export default function Students() {
               </button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {bulkModal && (
+        <Modal title="Bulk Upload Students" onClose={closeBulkModal}>
+          {!bulkResult ? (
+            <div className="space-y-4">
+              <div className="bg-surface-low rounded-xl px-4 py-3 text-sm text-on-surface-variant">
+                <p className="mb-2">Upload a CSV file to create multiple students at once.</p>
+                <button
+                  type="button"
+                  onClick={downloadTemplate}
+                  className="flex items-center gap-1.5 text-primary font-semibold text-xs hover:opacity-70 transition"
+                >
+                  <span className="material-symbols-outlined text-[16px]">download</span>
+                  Download Template CSV
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-[10px] uppercase tracking-widest font-semibold text-on-surface-variant mb-1.5">CSV File</label>
+                <label className="flex items-center gap-3 w-full bg-surface-low border border-outline-variant/30 rounded-xl px-4 py-3 cursor-pointer hover:border-primary/40 transition">
+                  <span className="material-symbols-outlined text-outline text-[22px]">attach_file</span>
+                  <span className="text-sm text-on-surface-variant truncate">
+                    {bulkFile ? bulkFile.name : 'Choose a .csv file...'}
+                  </span>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={e => setBulkFile(e.target.files[0] || null)}
+                  />
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-1">
+                <button type="button" onClick={closeBulkModal} className="px-5 py-2 text-sm font-semibold text-on-surface-variant hover:text-on-surface transition">Cancel</button>
+                <button
+                  type="button"
+                  onClick={handleBulkUpload}
+                  disabled={!bulkFile || bulkUploading}
+                  className="bg-gradient-to-br from-[#006565] to-[#008080] text-white px-5 py-2 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition flex items-center gap-2"
+                >
+                  {bulkUploading && <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>}
+                  {bulkUploading ? 'Uploading...' : 'Upload'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex gap-4">
+                <div className="flex-1 bg-[#006565]/8 rounded-xl px-4 py-3 text-center">
+                  <p className="text-2xl font-black text-primary">{bulkResult.created}</p>
+                  <p className="text-xs text-on-surface-variant font-semibold mt-0.5">Students Created</p>
+                </div>
+                <div className="flex-1 bg-surface-low rounded-xl px-4 py-3 text-center">
+                  <p className="text-2xl font-black text-on-surface-variant">{bulkResult.skipped}</p>
+                  <p className="text-xs text-on-surface-variant font-semibold mt-0.5">Skipped</p>
+                </div>
+              </div>
+
+              {bulkResult.errors.length > 0 && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest font-semibold text-on-surface-variant mb-1.5">Skipped Rows</p>
+                  <div className="max-h-48 overflow-y-auto rounded-xl border border-outline-variant/20 divide-y divide-outline-variant/10">
+                    {bulkResult.errors.map((e, i) => (
+                      <div key={i} className="px-4 py-2.5 text-sm">
+                        <span className="text-on-surface-variant">Row {e.row}</span>
+                        {e.email && <span className="text-on-surface font-medium"> ({e.email})</span>}
+                        <span className="text-error">: {e.reason}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={closeBulkModal}
+                  className="bg-gradient-to-br from-[#006565] to-[#008080] text-white px-5 py-2 rounded-xl text-sm font-semibold hover:opacity-90 transition"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
         </Modal>
       )}
 

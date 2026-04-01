@@ -31,6 +31,11 @@ export default function StudentProfile() {
   const [fileName, setFileName] = useState('');
   const [saving, setSaving] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [resetModal, setResetModal] = useState(false);
+  const [resetPassword, setResetPassword] = useState('');
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [resetSaving, setResetSaving] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(null); // holds the password after success
   const autoTitleRef = useRef('');
 
   useEffect(() => {
@@ -119,6 +124,34 @@ export default function StudentProfile() {
     }
   }
 
+  function generatePassword() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let pwd = '';
+    for (let i = 0; i < 8; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
+    setResetPassword(pwd);
+  }
+
+  async function handleResetPassword(e) {
+    e.preventDefault();
+    if (!resetPassword) return toast.error('Enter a default password');
+    setResetSaving(true);
+    try {
+      await api.put(`/students/${id}/reset-password`, { default_password: resetPassword });
+      setResetSuccess(resetPassword);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to reset password');
+    } finally {
+      setResetSaving(false);
+    }
+  }
+
+  function closeResetModal() {
+    setResetModal(false);
+    setResetPassword('');
+    setShowResetPassword(false);
+    setResetSuccess(null);
+  }
+
   async function handleDelete() {
     setSaving(true);
     try {
@@ -196,13 +229,22 @@ export default function StudentProfile() {
                 </span>
               )}
             </div>
-            <button
-              onClick={openUpload}
-              className="flex items-center gap-2 bg-gradient-to-br from-[#006565] to-[#008080] text-white px-4 py-2 rounded-xl font-semibold text-sm shadow-md shadow-primary/20 hover:opacity-90 transition"
-            >
-              <span className="material-symbols-outlined text-[18px]">upload_file</span>
-              Upload Result
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { setResetPassword(''); setShowResetPassword(false); setResetSuccess(null); setResetModal(true); }}
+                className="flex items-center gap-2 bg-[#7c4a00] text-white px-4 py-2 rounded-xl font-semibold text-sm shadow-md hover:opacity-90 transition"
+              >
+                <span className="material-symbols-outlined text-[18px]">lock_reset</span>
+                Reset Password
+              </button>
+              <button
+                onClick={openUpload}
+                className="flex items-center gap-2 bg-gradient-to-br from-[#006565] to-[#008080] text-white px-4 py-2 rounded-xl font-semibold text-sm shadow-md shadow-primary/20 hover:opacity-90 transition"
+              >
+                <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                Upload Result
+              </button>
+            </div>
           </div>
 
           {loadingResults ? (
@@ -310,6 +352,71 @@ export default function StudentProfile() {
               {saving ? 'Deleting...' : 'Delete'}
             </button>
           </div>
+        </Modal>
+      )}
+
+      {/* Reset password modal */}
+      {resetModal && (
+        <Modal title="Reset Student Password" onClose={closeResetModal}>
+          {resetSuccess ? (
+            <div className="space-y-4">
+              <div className="bg-[#fff8e7] border border-[#f0c060]/40 rounded-xl px-4 py-3 text-sm text-[#7c4a00]">
+                <p className="font-semibold mb-1">Password reset successfully.</p>
+                <p>An email has been sent to the student. You can also share the password directly:</p>
+              </div>
+              <div className="flex items-center gap-2 bg-[#f3f4f5] rounded-xl px-4 py-2.5">
+                <span className="flex-1 font-mono text-sm font-bold text-on-surface tracking-wider">{resetSuccess}</span>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(resetSuccess); toast.success('Copied to clipboard'); }}
+                  className="flex items-center gap-1 text-xs font-semibold text-primary hover:opacity-70 transition"
+                >
+                  <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                  Copy
+                </button>
+              </div>
+              <div className="flex justify-end pt-1">
+                <button onClick={closeResetModal} className="bg-gradient-to-br from-[#006565] to-[#008080] text-white px-5 py-2 rounded-xl text-sm font-semibold hover:opacity-90 transition">Done</button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <p className="text-sm text-on-surface-variant">Set a new default password for <span className="font-semibold text-on-surface">{student?.name}</span>. They will be required to change it on next login.</p>
+              <div>
+                <label className="block text-[10px] uppercase tracking-widest font-semibold text-on-surface-variant mb-1.5">New Default Password</label>
+                <div className="relative">
+                  <input
+                    type={showResetPassword ? 'text' : 'password'}
+                    required
+                    value={resetPassword}
+                    onChange={e => setResetPassword(e.target.value)}
+                    placeholder="Enter or generate a password"
+                    className="w-full bg-[#f3f4f5] border-none rounded-xl pl-4 pr-10 py-2.5 text-sm text-on-surface placeholder-outline focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPassword(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">{showResetPassword ? 'visibility_off' : 'visibility'}</span>
+                  </button>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={generatePassword}
+                className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:opacity-70 transition"
+              >
+                <span className="material-symbols-outlined text-[16px]">casino</span>
+                Generate Random Password
+              </button>
+              <div className="flex justify-end gap-3 pt-1">
+                <button type="button" onClick={closeResetModal} className="px-5 py-2 text-sm font-semibold text-on-surface-variant hover:text-on-surface transition">Cancel</button>
+                <button type="submit" disabled={resetSaving} className="bg-[#7c4a00] text-white px-5 py-2 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition">
+                  {resetSaving ? 'Resetting...' : 'Reset Password'}
+                </button>
+              </div>
+            </form>
+          )}
         </Modal>
       )}
     </AdminLayout>
