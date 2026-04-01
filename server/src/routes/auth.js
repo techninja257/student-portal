@@ -74,7 +74,7 @@ router.post('/student/request-otp', async (req, res) => {
       if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY not set');
 
       await resend.emails.send({
-        from: 'Student Portal <onboarding@resend.dev>',
+        from: 'Student Portal <noreply@studentportal.name.ng>',
         to: email,
         subject: 'Your Login OTP',
         html: `<p>Your OTP code is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`,
