@@ -14,11 +14,28 @@ function mobileTitle(title) {
   return title;
 }
 
+function groupBySemester(results) {
+  const map = results.reduce((acc, r) => {
+    const key = r.semester_name;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(r);
+    return acc;
+  }, {});
+
+  // Sort groups by most recent uploaded_at within each group (newest first)
+  return Object.entries(map).sort(([, a], [, b]) => {
+    const latestA = Math.max(...a.map(r => new Date(r.uploaded_at)));
+    const latestB = Math.max(...b.map(r => new Date(r.uploaded_at)));
+    return latestB - latestA;
+  });
+}
+
 export default function Dashboard() {
   const [profile, setProfile] = useState(null);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [openGroups, setOpenGroups] = useState(new Set());
 
   async function handleDownload(r) {
     setDownloadingId(r.id);
@@ -32,6 +49,18 @@ export default function Dashboard() {
     }
   }
 
+  function toggleGroup(semesterName) {
+    setOpenGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(semesterName)) {
+        next.delete(semesterName);
+      } else {
+        next.add(semesterName);
+      }
+      return next;
+    });
+  }
+
   useEffect(() => {
     async function fetchAll() {
       try {
@@ -40,13 +69,21 @@ export default function Dashboard() {
           api.get('/student/results'),
         ]);
         setProfile(profileRes.data);
-        setResults(resultsRes.data);
+        const fetched = resultsRes.data;
+        setResults(fetched);
+        // Open the most recent semester group by default
+        if (fetched.length > 0) {
+          const grouped = groupBySemester(fetched);
+          setOpenGroups(new Set([grouped[0][0]]));
+        }
       } finally {
         setLoading(false);
       }
     }
     fetchAll();
   }, []);
+
+  const grouped = groupBySemester(results);
 
   return (
     <StudentLayout>
@@ -136,44 +173,69 @@ export default function Dashboard() {
               <p className="text-xs md:text-sm text-outline mt-1">Your results will appear here once uploaded by the admin.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-              {results.map((r) => (
-                <div key={r.id} className="bg-white rounded-xl border-l-4 border-primary shadow-[0_4px_20px_rgba(0,101,101,0.04)] hover:shadow-xl transition-shadow border border-outline-variant/10 p-4 md:p-5">
-                  {/* Mobile card layout */}
-                  <div className="flex items-center justify-between gap-3 md:hidden">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] uppercase tracking-widest font-semibold text-[#006565] mb-0.5">{r.semester_name}</p>
-                      <p className="text-sm font-semibold text-on-surface leading-snug line-clamp-2">{mobileTitle(r.title)}</p>
-                      <p className="text-xs text-[#6e7979] mt-1">{fmt(r.uploaded_at)}</p>
-                    </div>
+            <div className="space-y-3">
+              {grouped.map(([semesterName, items]) => {
+                const isOpen = openGroups.has(semesterName);
+                return (
+                  <div key={semesterName}>
+                    {/* Section header */}
                     <button
-                      onClick={() => handleDownload(r)}
-                      disabled={downloadingId === r.id}
-                      className="w-10 h-10 rounded-full bg-[#006565]/5 flex items-center justify-center shrink-0 disabled:opacity-50 transition-colors active:bg-[#006565]/10"
-                      aria-label="Download PDF"
+                      onClick={() => toggleGroup(semesterName)}
+                      className="w-full flex items-center justify-between bg-[#f3f4f5] rounded-xl px-4 py-3 cursor-pointer hover:bg-[#e7e8e9] transition-colors"
                     >
-                      <span className="material-symbols-outlined text-[20px] text-[#006565]">
-                        {downloadingId === r.id ? 'hourglass_empty' : 'download'}
-                      </span>
+                      <span className="font-semibold text-sm text-[#006565] uppercase tracking-wide">{semesterName}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="bg-[#006565]/10 text-[#006565] text-xs font-bold px-2 py-0.5 rounded-full">{items.length}</span>
+                        <span className="material-symbols-outlined text-[20px] text-[#6e7979] transition-transform duration-200" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                          expand_more
+                        </span>
+                      </div>
                     </button>
-                  </div>
 
-                  {/* Desktop card layout */}
-                  <div className="hidden md:block">
-                    <p className="text-[10px] uppercase tracking-widest font-semibold text-primary mb-1">{r.semester_name}</p>
-                    <p className="font-headline font-bold text-on-surface text-lg">{r.title}</p>
-                    <p className="text-xs text-outline mt-1">{fmt(r.uploaded_at)}</p>
-                    <button
-                      onClick={() => handleDownload(r)}
-                      disabled={downloadingId === r.id}
-                      className="mt-4 flex items-center gap-1.5 border border-primary text-primary px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary/5 disabled:opacity-50 transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">download</span>
-                      {downloadingId === r.id ? 'Downloading...' : 'Download PDF'}
-                    </button>
+                    {/* Section content */}
+                    {isOpen && (
+                      <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                        {items.map((r) => (
+                          <div key={r.id} className="bg-white rounded-xl border-l-4 border-primary shadow-[0_4px_20px_rgba(0,101,101,0.04)] hover:shadow-xl transition-shadow border border-outline-variant/10 p-4 md:p-5">
+                            {/* Mobile card layout */}
+                            <div className="flex items-center justify-between gap-3 md:hidden">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold text-on-surface leading-snug line-clamp-2">{mobileTitle(r.title)}</p>
+                                <p className="text-xs text-[#6e7979] mt-1">{fmt(r.uploaded_at)}</p>
+                              </div>
+                              <button
+                                onClick={() => handleDownload(r)}
+                                disabled={downloadingId === r.id}
+                                className="w-10 h-10 rounded-full bg-[#006565]/5 flex items-center justify-center shrink-0 disabled:opacity-50 transition-colors active:bg-[#006565]/10"
+                                aria-label="Download PDF"
+                              >
+                                <span className="material-symbols-outlined text-[20px] text-[#006565]">
+                                  {downloadingId === r.id ? 'hourglass_empty' : 'download'}
+                                </span>
+                              </button>
+                            </div>
+
+                            {/* Desktop card layout */}
+                            <div className="hidden md:block">
+                              <p className="text-[10px] uppercase tracking-widest font-semibold text-primary mb-1">{r.semester_name}</p>
+                              <p className="font-headline font-bold text-on-surface text-lg">{r.title}</p>
+                              <p className="text-xs text-outline mt-1">{fmt(r.uploaded_at)}</p>
+                              <button
+                                onClick={() => handleDownload(r)}
+                                disabled={downloadingId === r.id}
+                                className="mt-4 flex items-center gap-1.5 border border-primary text-primary px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary/5 disabled:opacity-50 transition-colors"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">download</span>
+                                {downloadingId === r.id ? 'Downloading...' : 'Download PDF'}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </>
