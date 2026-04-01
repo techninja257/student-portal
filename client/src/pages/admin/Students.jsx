@@ -6,6 +6,7 @@ import Modal from '../../components/Modal';
 import Spinner from '../../components/Spinner';
 import Pagination from '../../components/Pagination';
 import api from '../../api';
+import { trackEvent } from '../../analytics.js';
 
 const emptyForm = { name: '', email: '', matric_no: '', department_id: '', level_id: '', photo: null };
 
@@ -117,6 +118,7 @@ export default function Students() {
         toast.success('Student updated');
       } else {
         await api.post('/students', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        trackEvent('student_registered');
         toast.success('Student created');
       }
       setModal(null);

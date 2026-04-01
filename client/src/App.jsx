@@ -13,6 +13,7 @@ import Semesters from './pages/admin/Semesters';
 import Students from './pages/admin/Students';
 import StudentProfile from './pages/admin/StudentProfile';
 import Results from './pages/admin/Results';
+import Settings from './pages/admin/Settings';
 
 function AdminRoute({ children }) {
   return <ProtectedRoute role="admin">{children}</ProtectedRoute>;
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="/admin/students" element={<AdminRoute><Students /></AdminRoute>} />
           <Route path="/admin/students/:id" element={<AdminRoute><StudentProfile /></AdminRoute>} />
           <Route path="/admin/results" element={<AdminRoute><Results /></AdminRoute>} />
+          <Route path="/admin/settings" element={<AdminRoute><Settings /></AdminRoute>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

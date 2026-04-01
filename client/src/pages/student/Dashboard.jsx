@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import StudentLayout from '../../layouts/StudentLayout';
 import Spinner from '../../components/Spinner';
 import api from '../../api';
+import { trackEvent } from '../../analytics.js';
 
 function fmt(date) {
   return new Date(date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -94,7 +95,7 @@ export default function Dashboard() {
                   <p className="font-headline font-bold text-on-surface text-lg">{r.title}</p>
                   <p className="text-xs text-outline mt-1">{fmt(r.uploaded_at)}</p>
                   <button
-                    onClick={() => window.open(r.cloudinary_url, '_blank')}
+                    onClick={() => { trackEvent('result_downloaded', { resultId: r.id, title: r.title }); window.open(r.cloudinary_url, '_blank'); }}
                     className="mt-4 flex items-center gap-1.5 border border-primary text-primary px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary/5 transition-colors"
                   >
                     <span className="material-symbols-outlined text-[18px]">download</span>

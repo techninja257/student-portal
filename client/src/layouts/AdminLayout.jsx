@@ -9,6 +9,7 @@ const navLinks = [
   { to: '/admin/departments', label: 'DEPARTMENTS', icon: 'account_balance' },
   { to: '/admin/levels', label: 'LEVELS', icon: 'layers' },
   { to: '/admin/semesters', label: 'SEMESTERS', icon: 'calendar_month' },
+  { to: '/admin/settings', label: 'SETTINGS', icon: 'settings' },
 ];
 
 const pageTitles = {
@@ -18,6 +19,7 @@ const pageTitles = {
   '/admin/departments': 'Departments',
   '/admin/levels': 'Levels',
   '/admin/semesters': 'Semesters',
+  '/admin/settings': 'Settings',
 };
 
 function initials(name) {

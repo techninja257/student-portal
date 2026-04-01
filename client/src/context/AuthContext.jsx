@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { identifyUser, resetAnalytics } from '../analytics.js';
 
 const AuthContext = createContext(null);
 
@@ -22,6 +23,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('user', JSON.stringify(user));
     setToken(token);
     setUser(user);
+    identifyUser(user.id, { name: user.name, email: user.email, role: user.role });
   }
 
   function logout() {
@@ -29,6 +31,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('user');
     setToken(null);
     setUser(null);
+    resetAnalytics();
   }
 
   function updateUser(updates) {

@@ -5,6 +5,7 @@ import Modal from '../../components/Modal';
 import Spinner from '../../components/Spinner';
 import Pagination from '../../components/Pagination';
 import api from '../../api';
+import { trackEvent } from '../../analytics.js';
 
 function fmt(date) {
   return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -227,6 +228,7 @@ export default function Results() {
       fd.append('title', form.title);
       fd.append('pdf', form.file);
       await api.post('/results', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      trackEvent('result_uploaded', { studentId: formStudent.id, semester: form.semester_id });
       toast.success('Result uploaded');
       setModal(null);
       fetchResults(filterStudent?.id || '', pagination.page);

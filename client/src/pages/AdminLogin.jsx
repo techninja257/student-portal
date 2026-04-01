@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { trackEvent } from '../analytics.js';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -17,6 +18,7 @@ export default function AdminLogin() {
     try {
       const { data } = await api.post('/auth/admin/login', { email, password });
       login(data.token, data.user);
+      trackEvent('admin_login_success');
       toast.success('Welcome back!');
       navigate('/admin');
     } catch (err) {

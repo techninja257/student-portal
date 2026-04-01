@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { Resend } from 'resend';
 import pool from '../db.js';
+import { requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -129,6 +130,33 @@ router.post('/student/verify-otp', async (req, res) => {
     });
   } catch (err) {
     console.error('Verify OTP error:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// PUT /api/auth/admin/change-password
+router.put('/admin/change-password', requireAdmin, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ message: 'New password must be at least 8 characters' });
+    }
+
+    const { rows } = await pool.query('SELECT * FROM admins WHERE id = $1', [req.user.id]);
+    const admin = rows[0];
+
+    const valid = await bcrypt.compare(currentPassword, admin.password_hash);
+    if (!valid) {
+      return res.status(401).json({ message: 'Current password is incorrect' });
+    }
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    await pool.query('UPDATE admins SET password_hash = $1 WHERE id = $2', [hash, admin.id]);
+
+    res.json({ message: 'Password changed successfully' });
+  } catch (err) {
+    console.error('Change password error:', err);
     res.status(500).json({ message: 'Internal server error' });
   }
 });

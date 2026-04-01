@@ -1,8 +1,11 @@
 import express from 'express';
 import multer from 'multer';
+import { Resend } from 'resend';
 import pool from '../db.js';
 import { requireAdmin, verifyToken } from '../middleware/auth.js';
 import { uploadPDF, deletePDF } from '../cloudinary.js';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const router = express.Router();
 
@@ -76,7 +79,34 @@ router.post('/', requireAdmin, upload.single('pdf'), async (req, res) => {
       [student_id, semester_id, title, url, public_id, req.file.originalname]
     );
 
-    res.status(201).json(rows[0]);
+    const result = rows[0];
+
+    // Send email notification (non-blocking)
+    try {
+      const [{ rows: studentRows }, { rows: semesterRows }] = await Promise.all([
+        pool.query('SELECT name, email FROM students WHERE id = $1', [student_id]),
+        pool.query('SELECT name FROM semesters WHERE id = $1', [semester_id]),
+      ]);
+      const student = studentRows[0];
+      const semester = semesterRows[0];
+      if (student && semester) {
+        await resend.emails.send({
+          from: 'Student Portal <noreply@studentportal.name.ng>',
+          to: student.email,
+          subject: 'New Result Uploaded',
+          html: `<p>Hi ${student.name},</p>
+<p>A new result has been uploaded to your Student Portal account.</p>
+<p><strong>Title:</strong> ${title}<br>
+<strong>Semester:</strong> ${semester.name}</p>
+<p>Log in to your portal to view and download it.</p>
+<p>— Student Portal</p>`,
+        });
+      }
+    } catch (emailErr) {
+      console.warn('Result notification email failed:', emailErr.message);
+    }
+
+    res.status(201).json(result);
   } catch (err) {
     console.error(err);
     if (err.message === 'Only PDF files are allowed') {

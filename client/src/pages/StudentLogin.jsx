@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { trackEvent } from '../analytics.js';
 
 export default function StudentLogin() {
   const [step, setStep] = useState('email'); // 'email' | 'otp'
@@ -18,6 +19,7 @@ export default function StudentLogin() {
     try {
       await api.post('/auth/student/request-otp', { email });
       toast.success('OTP sent to your email');
+      trackEvent('otp_requested');
       setStep('otp');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to send OTP');
@@ -32,6 +34,7 @@ export default function StudentLogin() {
     try {
       const { data } = await api.post('/auth/student/verify-otp', { email, code: otp });
       login(data.token, data.user);
+      trackEvent('student_login_success');
       toast.success('Welcome back!');
       navigate('/student');
     } catch (err) {
