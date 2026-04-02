@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { signalActivity } from './context/AuthContext.js';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5001/api',
@@ -9,6 +10,8 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // Every API call counts as activity — reset the inactivity timer
+  signalActivity();
   return config;
 });
 
